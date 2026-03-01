@@ -19,12 +19,7 @@ import {
 
 /**
  * Omni-flow (GeoPal-style) — MVP (front-end only)
- *
- * This file is intentionally self-contained.
- *
- * Recent bugfix:
- * - Previous canvas content was truncated mid-`JobDrawer` JSX, producing:
- *   “Unterminated JSX contents”. This version restores the full component and closes all tags.
+ * Self-contained, uses localStorage for demo persistence.
  */
 
 // ---------------------------
@@ -39,7 +34,6 @@ const STATUSES = {
 } as const;
 
 type Status = (typeof STATUSES)[keyof typeof STATUSES];
-
 type Role = "admin" | "operative";
 
 type Auth = {
@@ -260,7 +254,11 @@ function Chip({
     amber: "bg-amber-50 text-amber-900 border-amber-200",
     purple: "bg-purple-50 text-purple-800 border-purple-200",
   };
-  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${tones[tone]}`}>{label}</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${tones[tone]}`}>
+      {label}
+    </span>
+  );
 }
 
 function Input({
@@ -378,12 +376,8 @@ function LoginPage({ onLogin }: { onLogin: (a: Auth) => void }) {
       return;
     }
 
-    // Demo role rules:
-    // - PIN 9999 => admin
-    // - otherwise operative
     const role: Role = pin === "9999" || username.trim().toLowerCase() === "admin" ? ROLES.ADMIN : ROLES.OPERATIVE;
 
-    // Optional demo pin for operatives
     if (role === ROLES.OPERATIVE && pin && pin !== "1234") {
       setError("Incorrect PIN (demo operative PIN is 1234, or leave blank). Admin PIN is 9999.");
       return;
@@ -419,7 +413,8 @@ function LoginPage({ onLogin }: { onLogin: (a: Auth) => void }) {
             </Button>
 
             <div className="text-xs text-slate-500 leading-relaxed">
-              Demo: operatives can use PIN <span className="font-semibold">1234</span> (or blank). Admin uses PIN <span className="font-semibold">9999</span>.
+              Demo: operatives can use PIN <span className="font-semibold">1234</span> (or blank). Admin uses PIN{" "}
+              <span className="font-semibold">9999</span>.
               <br />
               Live version will use real accounts.
             </div>
@@ -437,7 +432,6 @@ function AppShell({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // persist
   useEffect(() => saveJobs(jobs), [jobs]);
   useEffect(() => saveRequests(requests), [requests]);
 
@@ -493,11 +487,6 @@ function AppShell({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
     setRequests((prev) => [req, ...prev]);
   }
 
-  function closeRequest(reqId: string) {
-    if (!isAdmin) return;
-    setRequests((prev) => prev.map((r) => (r.id === reqId ? { ...r, status: "Closed" } : r)));
-  }
-
   async function refresh() {
     setIsRefreshing(true);
     await new Promise((r) => setTimeout(r, clamp(500 + Math.random() * 700, 500, 1200)));
@@ -514,7 +503,6 @@ function AppShell({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top bar */}
       <div className="sticky top-0 z-30 backdrop-blur bg-white/80 border-b border-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -524,7 +512,8 @@ function AppShell({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
             <div>
               <div className="text-lg font-extrabold tracking-tight text-slate-900">Omni-flow</div>
               <div className="text-xs text-slate-600">
-                Logged in as <span className="font-semibold">{auth.user}</span> • <span className="font-semibold">{auth.role}</span>
+                Logged in as <span className="font-semibold">{auth.user}</span> •{" "}
+                <span className="font-semibold">{auth.role}</span>
               </div>
             </div>
           </div>
@@ -554,23 +543,14 @@ function AppShell({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
         </div>
       </div>
 
-      {/* Content */}
       <div className="mx-auto max-w-6xl px-4 py-4 pb-28">
         {tab === TABS.MY_JOBS ? <MyJobsView auth={auth} jobs={jobs} onOpenJob={setSelectedJobId} onSetStatus={setStatus} /> : null}
         {tab === TABS.REQUESTS ? <RequestsView auth={auth} requests={requests} onCreate={createRequest} /> : null}
         {tab === TABS.ADMIN && isAdmin ? (
-          <AdminView
-            jobs={jobs}
-            requests={requests}
-            onOpenJob={setSelectedJobId}
-            onAllocate={allocate}
-            onUnallocate={unallocate}
-            onCloseRequest={closeRequest}
-          />
+          <AdminView jobs={jobs} requests={requests} onOpenJob={setSelectedJobId} onAllocate={allocate} onUnallocate={unallocate} />
         ) : null}
       </div>
 
-      {/* Refresh button: centered, ~15% up from bottom */}
       <div className="fixed left-1/2 -translate-x-1/2 z-40" style={{ bottom: "15vh" }}>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Button onClick={refresh} disabled={isRefreshing} className="shadow-lg">
@@ -580,7 +560,6 @@ function AppShell({ auth, onLogout }: { auth: Auth; onLogout: () => void }) {
         </motion.div>
       </div>
 
-      {/* Job detail drawer */}
       <AnimatePresence>
         {selectedJob ? (
           <JobDrawer
@@ -790,7 +769,6 @@ function RequestsView({
   onCreate: (x: { requestedBy: string; notes: string }) => void;
 }) {
   const [notes, setNotes] = useState("");
-
   const myRequests = useMemo(() => requests.filter((r) => r.requestedBy === auth.user), [requests, auth.user]);
 
   function submit() {
@@ -847,14 +825,12 @@ function AdminView({
   onOpenJob,
   onAllocate,
   onUnallocate,
-  onCloseRequest,
 }: {
   jobs: Job[];
   requests: WorkRequest[];
   onOpenJob: (id: string) => void;
   onAllocate: (jobId: string, assignee: string) => void;
   onUnallocate: (jobId: string) => void;
-  onCloseRequest: (id: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [areaFilter, setAreaFilter] = useState("ALL");
@@ -869,7 +845,6 @@ function AdminView({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-
     return jobs
       .filter((j) => {
         const matchesSearch =
@@ -902,7 +877,6 @@ function AdminView({
   }, [jobs, search, areaFilter, statusFilter]);
 
   const paged = filtered.slice(0, pageSize);
-
   const openReqs = useMemo(() => requests.filter((r) => r.status === "Open"), [requests]);
 
   function allocateTopN(n: number) {
@@ -1045,14 +1019,9 @@ function AdminView({
                       setAssignee(r.requestedBy);
                       allocateTopN(5);
                     }}
-                    title="Allocate next 5 unallocated jobs to this operative"
                   >
                     <Users className="h-4 w-4" />
                     Allocate 5
-                  </Button>
-                  <Button variant="ghost" className="px-3 py-2" onClick={() => onCloseRequest(r.id)}>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Close
                   </Button>
                 </div>
               </Card>
@@ -1158,8 +1127,6 @@ function JobDrawer({
               </div>
               <div className="col-span-2">
                 <div className="text-xs text-slate-500">Allocated To</div>
-                              <div className="col-span-2">
-                <div className="text-xs text-slate-500">Allocated To</div>
                 <div className="text-sm font-semibold text-slate-900">{job.allocatedTo || "Unallocated"}</div>
               </div>
             </div>
@@ -1244,4 +1211,5 @@ export default function App() {
     />
   );
 }
+
 
