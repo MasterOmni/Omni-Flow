@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-// import "./index.css"; // keep this if you have it, it won't hurt
+import "./index.css"; 
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -61,3 +61,4 @@ if (!rootEl) {
     </React.StrictMode>
   );
 }
+
