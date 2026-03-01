@@ -1158,3 +1158,90 @@ function JobDrawer({
               </div>
               <div className="col-span-2">
                 <div className="text-xs text-slate-500">Allocated To</div>
+                              <div className="col-span-2">
+                <div className="text-xs text-slate-500">Allocated To</div>
+                <div className="text-sm font-semibold text-slate-900">{job.allocatedTo || "Unallocated"}</div>
+              </div>
+            </div>
+          </Card>
+
+          {canEdit ? (
+            <Card className="p-4">
+              <div className="text-xs font-semibold text-slate-500">Actions</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  variant="soft"
+                  className="px-3 py-2"
+                  onClick={() => onSetStatus(STATUSES.IN_PROGRESS)}
+                  disabled={job.status === STATUSES.COMPLETE || job.status === STATUSES.ABORT}
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                  In Progress
+                </Button>
+
+                <Button
+                  variant="success"
+                  className="px-3 py-2"
+                  onClick={() => onSetStatus(STATUSES.COMPLETE)}
+                  disabled={job.status === STATUSES.COMPLETE}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Complete
+                </Button>
+
+                <Button
+                  variant="warn"
+                  className="px-3 py-2"
+                  onClick={() => onSetStatus(STATUSES.BAU)}
+                  disabled={job.status === STATUSES.COMPLETE}
+                >
+                  <ArrowLeftRight className="h-4 w-4" />
+                  BAU
+                </Button>
+
+                <Button
+                  variant="danger"
+                  className="px-3 py-2"
+                  onClick={() => onSetStatus(STATUSES.ABORT)}
+                  disabled={job.status === STATUSES.COMPLETE}
+                >
+                  <Ban className="h-4 w-4" />
+                  Abort
+                </Button>
+
+                <Button variant="ghost" className="px-3 py-2 ml-auto" onClick={onClose}>
+                  <X className="h-4 w-4" />
+                  Close
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-4">
+              <div className="text-sm font-semibold text-slate-700">Read-only</div>
+              <div className="text-xs text-slate-500 mt-1">Only admin or the allocated operative can update this job.</div>
+            </Card>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ---------------------------
+// App root
+// ---------------------------
+export default function App() {
+  const [auth, setAuth] = useState<Auth | null>(() => loadAuth());
+
+  if (!auth) return <LoginPage onLogin={setAuth} />;
+
+  return (
+    <AppShell
+      auth={auth}
+      onLogout={() => {
+        setAuth(null);
+      }}
+    />
+  );
+}
+
