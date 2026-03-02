@@ -5,11 +5,11 @@ module.exports = async function (context, req) {
     "local-dev-user";
 
   const name =
-    req.headers["x-ms-client-principal-name"] ||
-    "Local Dev";
+    req.headers["x-ms-client-principal-name"] || "Local Dev";
 
   context.res = {
     status: 200,
-    jsonBody: { userId, name, role: "operative" }
+    headers: { "Content-Type": "application/json" },
+    body: { userId, name, role: "operative" },
   };
 };
